@@ -1,0 +1,3 @@
+npm install express helmet morgan cors compression hpp express-rate-limit dotenv
+
+npm install nanoid slugify zod
