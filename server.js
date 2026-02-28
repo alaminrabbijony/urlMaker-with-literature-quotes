@@ -53,7 +53,7 @@ const gracefulShutdown = async (signal, exitCode = 0) => {
     }
     if (myPool) {
       console.log("🗄️ Draining PostgreSQL connection pool...");
-      await pool.end();
+      await myPool.end();
       console.log("✅ Database connections safely closed.");
     }
     clearTimeout(forceExit);
@@ -70,9 +70,20 @@ const gracefulShutdown = async (signal, exitCode = 0) => {
  * ============================
  */
 
+//DEBATABLE
+// process.on("uncaughtException", (err) => {
+//   console.error("CRITICAL: Uncaught Exception! 💥", err);
+//   gracefulShutdown("uncaughtException", 1);
+// });
+
+//Trying to gracefully shutdown after memory corruption is sometimes worse.
+//RECOMMENDED BY NODE TEAM
+
+
+
 process.on("uncaughtException", (err) => {
-  console.error("CRITICAL: Uncaught Exception! 💥", err);
-  gracefulShutdown("uncaughtException", 1);
+  console.error("CRITICAL: Uncaught Exception", err);
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (err) => {
@@ -96,11 +107,10 @@ const start = async () => {
     console.log("✅ PostgreSQL pool established.");
     const port = process.env.PORT || 3000;
 
-    server -
-      app.listen(port, () => {
-        console.log(`🚀 POS Server active on port ${port}`);
-        // NOTE: Ensure app.js exposes a GET /health endpoint
-      });
+    server = app.listen(port, () => {
+      console.log(`🚀 POS Server active on port ${port}`);
+      // NOTE: Ensure app.js exposes a GET /health endpoint
+    });
   } catch (error) {
     console.error("❌ System bootstrap failed:", error.message);
     process.exit(1);

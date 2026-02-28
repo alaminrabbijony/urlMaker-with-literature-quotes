@@ -1,10 +1,15 @@
-const { integer, pgTable, varchar, timestamp } = require("drizzle-orm/pg-core");
+const { integer, pgTable, varchar, timestamp, pgEnum } = require("drizzle-orm/pg-core");
+
+const roleEnum = pgEnum("role", ["super_admin","admin", "user"])
 
 const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
   password: varchar({ length: 255 }).notNull(),
+
+  role: roleEnum().notNull().default("user"),
+  //confirmPassword: varchar({ length: 255 }).notNull()
   passwordChangedAt: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -12,7 +17,7 @@ const usersTable = pgTable("users", {
 
 const passwordChangeHistoryTable = pgTable("password_change_history", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer().notNull().references(usersTable.id),
+  userId: integer().notNull().references(() => usersTable.id),
   changedAt: timestamp("pass_changed_at").defaultNow().notNull(),
   ipAddress: varchar({ length: 100 }),
   userAgent: varchar({ length: 255 }),

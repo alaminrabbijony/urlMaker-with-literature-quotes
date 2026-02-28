@@ -1,3 +1,27 @@
 npm install express helmet morgan cors compression hpp express-rate-limit dotenv
 
 npm install nanoid slugify zod
+
+****************************GITHUB PUSH ******************************
+
+git init
+git add .
+git commit -m "Initial commit: Production-ready Express pipeline and schema"
+git branch -M main
+git remote add origin https://github.com/USERNAME/REPO_NAME.git
+git push -u origin main
+
+// if fetch first rejection. aka gitignore and readmd checked while creating REPO
+git pull origin main --allow-unrelated-histories
+git push -u origin main
+
+--------------------------NORMAL CMD---------------------------------
+git add .
+
+git commit -m "Added URL creation controller"
+
+git push 
+
+*****************************MIGRATION DB****************
+ npx drizzle-kit generate
+npx drizzle-kit migrate

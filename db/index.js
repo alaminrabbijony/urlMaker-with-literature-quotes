@@ -1,10 +1,10 @@
-const { drizzle } = require("drizzle-orm/postgres-js");
+const { drizzle } = require("drizzle-orm/node-postgres");
 const { Pool } = require("pg");
 
 const myPool = new Pool({
-     connectionString: process.env.DB_URL
-})
+  connectionString: process.env.DB_URL,
+});
 
-const db = drizzle({client: myPool})
+const db = drizzle(myPool);
 
-module.exports = {myPool, db}
+module.exports = { myPool, db };

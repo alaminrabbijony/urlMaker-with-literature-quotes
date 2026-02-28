@@ -1,12 +1,12 @@
 const express = require('express')
-const app = require("express")
+const app = express()
 const  helmet  = require("helmet")
 const cors = require("cors")
 const morgan = require("morgan")
 const { default: rateLimit } = require("express-rate-limit")
 const compression = require('compression')
 const AppError = require('./util/appError')
-
+const hpp = require("hpp")
 
 /* =======================================================
    1. TRUST PROXY (important behind Nginx/Render/Heroku)
@@ -59,6 +59,9 @@ app.use("/api", [
 /* =======================================================
    5. Routers
 ======================================================= */
+const usersRouter = require("./routes/userRoutes") 
+
+app.use("/api/v1/users", usersRouter)
 
 
 /* =======================================================
