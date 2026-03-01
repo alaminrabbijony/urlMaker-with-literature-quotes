@@ -6,6 +6,8 @@ const catchAsync = require("../util/catchAsync");
 const jwt = require("jsonwebtoken");
 const argon2 = require("argon2");
 const { promisify } = require("util");
+const { userSchema, loginUserSchema } = require("../util/validation");
+
 const signToken = (id) => {
   return jwt.sign({ id: id }, process.env.SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -13,8 +15,9 @@ const signToken = (id) => {
 };
 
 exports.register = catchAsync(async (req, res, next) => {
-  console.log(process.env.DB_URL);
-  const { email, name, password } = req.body;
+  //console.log(process.env.DB_URL);
+console.log(req.body);
+  const { email, name, password } = await userSchema.parseAsync(req.body);
 
   if (!email || !name || !password)
     return next(new AppError("Plz prvide all the credentials", 400));
@@ -43,7 +46,6 @@ exports.register = catchAsync(async (req, res, next) => {
       id: usersTable.id,
       email: usersTable.email,
       name: usersTable.name,
-      
     });
 
   //SEND TOKEN
@@ -57,7 +59,7 @@ exports.register = catchAsync(async (req, res, next) => {
 });
 
 exports.login = catchAsync(async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password } = await loginUserSchema.parseAsync(req.body) ;
   if (!email || !password)
     return next(new AppError("Please provide all fields", 400));
 
@@ -111,3 +113,7 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
+exports.updateUser = catchAsync (async (req, res, next) => {
+    
+})

@@ -74,5 +74,7 @@ app.use((req, res, next) => {
 /* =======================================================
    7. GLOBAL ERROR HANDLER
 ======================================================= */
+const globalErrorHandler = require('./util/globalErrorHandlers')
+app.use(globalErrorHandler)
 
 module.exports = app

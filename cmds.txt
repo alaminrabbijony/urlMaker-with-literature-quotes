@@ -22,6 +22,20 @@ git commit -m "Added URL creation controller"
 
 git push 
 
-*****************************MIGRATION DB****************
- npx drizzle-kit generate
+*****************************MIGRATION DB**************************
+npx drizzle-kit generate
 npx drizzle-kit migrate
+
+
+ npx drizzle-kit generate
+    => Compares your schema files
+    => Creates a SQL migration file
+    => Does NOT touch database
+
+npx drizzle-kit migrate
+    => Runs generated migration files
+    => Applies them to database
+
+npx drizzle-kit introspect 
+    => For connecting to existing DB
+    => Reverse engineering
