@@ -1,12 +1,27 @@
-const { eq } = require("drizzle-orm");
+const { eq, and, gt, isNull } = require("drizzle-orm");
 const { db } = require("../db");
-const { usersTable } = require("../models/usersMOdel");
+const {
+  usersTable,
+  resetPasswordTable,
+  passwordChangeHistoryTable,
+} = require("../models/usersMOdel");
 const AppError = require("../util/appError");
 const catchAsync = require("../util/catchAsync");
 const jwt = require("jsonwebtoken");
 const argon2 = require("argon2");
 const { promisify } = require("util");
-const { userSchema, loginUserSchema } = require("../util/validation");
+const {
+  userSchema,
+  loginUserSchema,
+  forgetPasswordUserSchema,
+  resetPasswordSchema,
+} = require("../util/validation");
+const {
+  genRandToken,
+  hashToken,
+  hashPassword,
+} = require("../util/hashedTokenGenerator");
+const sendMail = require("../util/sendMail");
 
 const signToken = (id) => {
   return jwt.sign({ id: id }, process.env.SECRET, {
@@ -16,7 +31,7 @@ const signToken = (id) => {
 
 exports.register = catchAsync(async (req, res, next) => {
   //console.log(process.env.DB_URL);
-console.log(req.body);
+  console.log(req.body);
   const { email, name, password } = await userSchema.parseAsync(req.body);
 
   if (!email || !name || !password)
@@ -33,9 +48,7 @@ console.log(req.body);
   //
 
   //Hash the password
-  const hashedPassword = await argon2.hash(password, {
-    type: argon2.argon2id,
-  });
+  const hashedPassword = await hashPassword(password);
 
   //CREATE NEW USER
 
@@ -59,7 +72,7 @@ console.log(req.body);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
-  const { email, password } = await loginUserSchema.parseAsync(req.body) ;
+  const { email, password } = await loginUserSchema.parseAsync(req.body);
   if (!email || !password)
     return next(new AppError("Please provide all fields", 400));
 
@@ -114,6 +127,125 @@ exports.restrictTo = (...roles) => {
   };
 };
 
-exports.updateUser = catchAsync (async (req, res, next) => {
-    
-})
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  //1) get the user based on POSTed email
+  const { email } = await forgetPasswordUserSchema.parseAsync(req.body);
+  // gives returns an array with 1st el ebven if there are 5 el
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email));
+  console.log(email)
+  // const user = await db.query.usersTable.findFirst({
+  //   where: eq(usersTable.email, email),
+  // });
+console.log(user)
+  if (!user) return next(new AppError("User not found", 404));
+
+  //2) Generate the reset token
+  const token = genRandToken();
+  const hashedToken = hashToken(token);
+
+  await db.transaction(async (tx) => {
+    //3) Mark all token as used
+    await tx
+      .update(resetPasswordTable)
+      .set({
+        usedAt: new Date(),
+      })
+      .where(
+        and(eq(resetPasswordTable.userId, user.id), isNull(resetPasswordTable.usedAt)),
+      );
+
+    //4) insert token in the db
+    await tx.insert(resetPasswordTable).values({
+      userId: user.id,
+      tokenHash: hashedToken,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), //5 min
+    });
+  });
+
+  try {
+    //5) Send the token to the mail
+
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/v1/users/reset/${token}`;
+    const message = `Forgot ur password?\n Submit a PATCH req with ur new password and confirm password in this URL\n ${resetUrl}\n If u didnt then ignore this email`;
+
+    await sendMail({
+      email: email,
+      subject: "Reset Password",
+      message,
+    });
+    res.status(200).json({
+      status: "success",
+      message: "Token send to email",
+      resetUrl,
+    });
+  } catch (error) {
+    //6) clean reset token
+    await db
+      .update(resetPasswordTable)
+      .set({ usedAt: new Date() })
+      .where(
+        and(
+          eq(resetPasswordTable.userId, user.id),
+          isNull(resetPasswordTable.usedAt),
+        ),
+      );
+
+    return next(
+      new AppError("Something went wrong while sending email😥😥😥", 500),
+    );
+  }
+});
+
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  //1. Get the user with the token
+
+  const hashedToken = hashToken(req.params.token);
+  //2. If token has not expired , there is a user so set the password
+  const tokenRow = await db.query.resetPasswordTable.findFirst({
+    where: and(
+      eq(resetPasswordTable.tokenHash, hashedToken),
+      gt(resetPasswordTable.expiresAt, new Date()),
+      isNull(resetPasswordTable.usedAt),
+    ),
+  });
+  if (!tokenRow) return next(new AppError("Token is invalid or expired", 400));
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.id, tokenRow.userId),
+  });
+  //3. change password
+  const { password } = await resetPasswordSchema.parseAsync(req.body);
+  const hashedPassword = await hashPassword(password);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(usersTable)
+      .set({
+        password: hashedPassword,
+        //3. Change the updatPasswordAt
+        passwordChangedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, user.id));
+    //documet the password change history
+    await tx.insert(passwordChangeHistoryTable).values({
+      userId: user.id,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    await tx.update(resetPasswordTable)
+          .set({usedAt: new Date()})
+          .where(eq(resetPasswordTable.id, tokenRow.id))
+
+  });
+
+  //4. Log user and send jwt
+  //const token = signToken(user.id);
+  const token = signToken(tokenRow.userId);
+  res.status(200).json({
+    status: "success",
+    token,
+  });
+});

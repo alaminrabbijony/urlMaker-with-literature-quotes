@@ -1,205 +1,162 @@
+// middleware/globalErrorHandler.js
+
 const { ZodError } = require("zod");
 const AppError = require("./appError");
 
-/* ----------------------------------------- ZOD ----------------------------------------- */
 
-const handleZodErrors = (err) => {
-  // 1. Map through the Zod issues and create an array of strings
-  const errorMessages = err.issues.map((issue) => {
-    const fieldName = issue.path.join(".");
-    return `${fieldName}: ${issue.message}`;
-  });
+/* ----------------------------- ZOD ----------------------------- */
 
-  // 2. Join the array into a single sentence
-  const combinedMessage = `Validation Failed. ${errorMessages.join(", ")}`;
+const handleZodError = (err) => {
+  const formatted = err.issues.map(issue => ({
+    field: issue.path.join("."),
+    message: issue.message,
+  }));
 
-  // 3. Pass only the combined string to your AppError (no need for the array anymore)
-  return new AppError(combinedMessage, 400);
+  return new AppError("Validation failed", 400, formatted);
 };
 
-/* ----------------------------------------- POSTGRES ----------------------------------------- */
+/* ----------------------------- POSTGRES ----------------------------- */
 
-/* ----------------------------------------- POSTGRES ----------------------------------------- */
-
-const handleDuplicateFieldsDB = (err) => {
-  // Postgres err.detail looks like: Key (email)=(test@example.com) already exists.
-  // We use regex to extract the field name and the value they entered.
+const handleDuplicate = (err) => {
   const match = err.detail?.match(/Key \((.*?)\)=\((.*?)\) already exists/);
 
-  let message = "Duplicate field value entered. Please use another value.";
+  let field = "unknown";
+  let message = "Duplicate field value entered.";
+
   if (match) {
-    const field = match[1];
+    field = match[1];
     const value = match[2];
-    message = `The ${field} '${value}' is already taken. Please use a different ${field}.`;
+    message = `The ${field} '${value}' is already taken.`;
   }
 
-  return new AppError(message, 400);
+  return new AppError(message, 400, [{ field, message }]);
 };
 
-const handleNotNullViolation = (err) => {
-  // Postgres err.column gives us the exact column name that was null
-  const column = err.column || "Required";
-  const message = `The '${column}' field cannot be empty. Please provide a valid value.`;
+const handleNotNull = (err) => {
+  const field = err.column || "unknown";
+  const message = `The '${field}' field cannot be empty.`;
 
-  return new AppError(message, 400);
+  return new AppError(message, 400, [{ field, message }]);
 };
 
-const handleForeignKeyViolation = (err) => {
-  // err.detail looks like: Key (user_id)=(123) is not present in table "users".
+const handleForeignKey = (err) => {
   const match = err.detail?.match(/Key \((.*?)\)=\((.*?)\) is not present/);
 
-  let message = "Invalid reference. The related record does not exist.";
+  let field = "unknown";
+  let message = "Invalid reference.";
+
   if (match) {
-    const field = match[1];
+    field = match[1];
     const value = match[2];
-    message = `The referenced ${field} ('${value}') does not exist in our system.`;
+    message = `The referenced ${field} '${value}' does not exist.`;
   }
 
-  return new AppError(message, 400);
+  return new AppError(message, 400, [{ field, message }]);
 };
 
-const handleInvalidTextRepresentation = (err) => {
-  // Happens when you send a string to a UUID or Integer column
-  // err.message looks like: invalid input syntax for type uuid: "hello"
-  const match = err.message?.match(
-    /invalid input syntax for type (.*?): "(.*?)"/,
-  );
+const handleInvalidText = (err) => {
+  const match = err.message?.match(/invalid input syntax for type (.*?): "(.*?)"/);
 
-  let message = "Invalid data format provided for one of the fields.";
+  let field = "unknown";
+  let message = "Invalid data format.";
+
   if (match) {
     const type = match[1];
     const value = match[2];
-    message = `The value '${value}' is invalid. It must be a valid ${type} format.`;
+    message = `'${value}' is not a valid ${type}.`;
   }
 
-  return new AppError(message, 400);
+  return new AppError(message, 400, [{ field, message }]);
 };
 
-const handleValueTooLongDB = () => {
-  return new AppError(
-    "One of your inputs exceeds the maximum allowed length.",
-    400,
-  );
-};
-
-const handleCheckConstraintDB = (err) => {
-  // Extracting the constraint name if possible
-  const constraint = err.constraint || "data";
-  return new AppError(
-    `The provided data violates the '${constraint}' constraint.`,
-    400,
-  );
-};
-
-const postgresErr = (error) => {
-  switch (error.code) {
-    case "23505":
-      error = handleDuplicateFieldsDB(error);
-      break;
-    case "23502":
-      error = handleNotNullViolation(error);
-      break;
-    case "23503":
-      error = handleForeignKeyViolation(error);
-      break;
-    case "22P02":
-      error = handleInvalidTextRepresentation(error);
-      break;
-    case "22001":
-      error = handleValueTooLongDB();
-      break;
-    case "23514":
-      error = handleCheckConstraintDB(error);
-      break;
-    default:
-      break;
+const postgresHandler = (err) => {
+  switch (err.code) {
+    case "23505": return handleDuplicate(err);
+    case "23502": return handleNotNull(err);
+    case "23503": return handleForeignKey(err);
+    case "22P02": return handleInvalidText(err);
+    default: return err;
   }
-  return error;
 };
 
-/* ----------------------------------------- JWT ----------------------------------------- */
+/* ----------------------------- JWT ----------------------------- */
 
 const handleJWTError = () =>
   new AppError("Invalid token. Please login again.", 401);
 
-const handleTokenExpiredError = () =>
+const handleTokenExpired = () =>
   new AppError("Token expired. Please login again.", 401);
 
-/* ----------------------------------------- RESPONSE FORMATTERS ----------------------------------------- */
+/* ----------------------------- RESPONSE ----------------------------- */
 
-const devErrors = (err, res) => {
+const devErr = (err, res) => {
   return res.status(err.statusCode).json({
     status: err.status,
     message: err.message,
-    errors: err.errors || null,
+    errors: err.errors,
     stack: err.stack,
   });
 };
 
-const prodErrors = (err, res) => {
-  if (err.isOperational) {
-    return res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-      //errors: err.errors || null,
+const prodErr = (err, res) => {
+  if (!err.isOperational) {
+    console.error("💥 UNEXPECTED ERROR:", err);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Something went very wrong!",
+      errors: [],
     });
   }
 
-  console.error("ERROR 💥", err);
-
-  return res.status(500).json({
-    status: "error",
-    message: "Something went very wrong!",
+  return res.status(err.statusCode).json({
+    status: err.status,
+    message: err.message,
+    errors: err.errors,
   });
 };
 
-/* ----------------------------------------- GLOBAL HANDLER ----------------------------------------- */
+/* ----------------------------- GLOBAL HANDLER ----------------------------- */
 
 const globalErrorHandler = (err, req, res, next) => {
   if (res.headersSent) return next(err);
 
   let error = err;
 
-  //conn
-  if (error.code === "ECONNREFUSED") {
-    error = new AppError("Database connection failed.", 500);
-  }
-
   // Zod
   if (error instanceof ZodError) {
-    error = handleZodErrors(error);
+    error = handleZodError(error);
   }
 
   // Postgres
-  error = postgresErr(error);
-  // JWT
-  if (error.name === "JsonWebTokenError") error = handleJWTError();
-  if (error.name === "TokenExpiredError") error = handleTokenExpiredError();
+  error = postgresHandler(error);
 
-  // FILE UPLOAD
-  // if (error.name === "MulterError") {
-  //   const message = error.code === "LIMIT_FILE_SIZE"
-  //     ? "File is too large. Please upload a smaller file."
-  //     : `File upload error: ${error.message}`;
-  //   error = new AppError(message, 400);
-  // }
-  //Others
-  if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
-    return new AppError(
-      "Invalid JSON payload passed. Please check your formatting.",
-      400,
-    );
+  // JWT
+  if (error.name === "JsonWebTokenError") {
+    error = handleJWTError();
   }
+
+  if (error.name === "TokenExpiredError") {
+    error = handleTokenExpired();
+  }
+
+  // filee up
+// if (error.name === "MulterError") {
+//   const message = error.code === "LIMIT_FILE_SIZE" 
+//     ? "File is too large. Please upload a smaller file." 
+//     : `File upload error: ${error.message}`;
+//   error = new AppError(message, 400);
+// }
+
   // Normalize
   error.statusCode = error.statusCode || 500;
   error.status = error.status || "error";
 
-  // ENV SPLIT
   if (process.env.NODE_ENV === "development") {
-    return devErrors(error, res);
+    return devErr(error, res);
   }
 
-  return prodErrors(error, res);
+  return prodErr(error, res);
 };
 
 module.exports = globalErrorHandler;
