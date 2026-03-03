@@ -35,6 +35,53 @@ The file isolates infrastructure concerns from business logic and ensures:
 - No orphaned DB connections
 - Production-ready lifecycle management
 
+## Application Layer (`app.js`)
+
+`app.js` configures the Express application, global middleware, routing, and error handling.  
+It is responsible for request processing, security hardening, and API pipeline structure.
+
+---
+
+### Core Responsibilities
+
+- **Security Middleware**
+  - `helmet` for HTTP security headers
+  - `cors` for cross-origin handling
+  - `hpp` to prevent HTTP parameter pollution
+  - `express-rate-limit` to mitigate abuse
+  - `compression` for optimized API responses
+
+- **Trust Proxy Configuration**
+  Enables correct IP detection when deployed behind reverse proxies (e.g., Nginx, Docker, cloud platforms).
+
+- **Traffic Segmentation**
+  - **Hot Path (Redirect Engine)**: Minimal middleware for high-speed URL redirection.
+  - **API Layer**: Heavy middleware (rate limiting, body parsing, compression) isolated under `/api`.
+
+- **Rate Limiting**
+  - Redirect limiter for high-volume public traffic
+  - API limiter for authenticated and management endpoints
+
+- **Routing**
+  Modular route handling under `/api/v1/users`.
+
+- **Global Error Handling**
+  - Centralized error forwarding via `AppError`
+  - Final global error handler middleware
+
+- **404 Handling**
+  Captures undefined routes and forwards structured errors.
+
+---
+
+### Design Goals
+
+- Clear separation between performance-critical routes and management APIs
+- Middleware isolation for optimized request flow
+- Production-grade security defaults
+- Centralized error control
+- Modular, scalable routing structure
+
 ## Authentication & Authorization Architecture
 
 The authentication system is designed with security, transaction safety, and replay protection in mind.  
