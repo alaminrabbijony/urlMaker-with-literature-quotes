@@ -34,3 +34,121 @@ The file isolates infrastructure concerns from business logic and ensures:
 - Safe shutdown
 - No orphaned DB connections
 - Production-ready lifecycle management
+
+## Authentication & Authorization Architecture
+
+The authentication system is designed with security, transaction safety, and replay protection in mind.  
+It uses JWT-based authentication with secure password hashing and reset-token workflows.
+
+---
+
+### 🔐 Password Security
+
+- Passwords are hashed using **Argon2** before storage.
+- Plaintext passwords are never stored.
+- Password updates automatically invalidate existing JWTs using `passwordChangedAt`.
+
+---
+
+### 🎟 JWT Authentication
+
+- Tokens are signed with a server secret and expiration time.
+- Protected routes validate:
+  - Token presence
+  - Token signature
+  - User existence
+  - Password change after token issuance
+
+This prevents session reuse after password resets.
+
+---
+
+### 🔁 Forgot Password Flow
+
+1. User submits email.
+2. System responds with a generic success message (prevents user enumeration).
+3. If user exists:
+   - All existing unused reset tokens are invalidated.
+   - A new reset token is generated.
+   - Token is hashed and stored with expiration.
+   - Email is sent with reset link.
+
+Reset tokens:
+- Are stored hashed (never plaintext).
+- Have expiration timestamps.
+- Are single-use (`usedAt` enforced).
+- Are managed inside database transactions.
+
+---
+
+### 🔄 Reset Password Flow
+
+1. Token is hashed and validated against:
+   - Matching hash
+   - Not expired
+   - Not previously used
+2. Inside a transaction:
+   - User password is updated.
+   - `passwordChangedAt` is updated.
+   - Reset token is marked as used.
+   - Password change history is logged.
+3. A new JWT is issued.
+
+This guarantees:
+- No replay attacks
+- Atomic password updates
+- Proper audit logging
+
+---
+
+### 🛡 Role-Based Access Control (RBAC)
+
+- `protect` middleware verifies authentication.
+- `restrictTo` middleware enforces role-based permissions.
+- Roles are checked per-route.
+
+---
+
+### 📜 Audit Logging
+
+Each password change:
+- Is recorded in `passwordChangeHistoryTable`
+- Logs IP address and user-agent
+- Supports forensic and security analysis
+
+---
+
+### ⚙️ Transaction Safety
+
+All critical operations (password update, token invalidation, history logging) run inside database transactions to ensure:
+
+- Consistency
+- No partial state
+- No race conditions
+
+---
+
+### 🔒 Security Considerations Implemented
+
+- Argon2 password hashing
+- JWT invalidation on password change
+- Reset token hashing
+- Reset token expiry enforcement
+- Replay attack prevention
+- User enumeration prevention
+- Transaction-based consistency
+- Rate limiting (configured at app level)
+
+---
+
+## Summary
+
+The authentication system is:
+
+- Stateless (JWT-based)
+- Transaction-safe
+- Replay-resistant
+- Audit-aware
+- Designed for production deployment
+
+It separates active authentication state, historical logs, and user identity data to maintain clean architecture boundaries.

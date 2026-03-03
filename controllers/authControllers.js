@@ -97,20 +97,32 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   if (
     req.headers.authorization &&
-    req.headers.authorization.startWith("Bearer")
+    req.headers.authorization.startsWith("Bearer")
   ) {
-    token = req.headers.authorization.split(" ")[0];
+    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) return next(new AppError("U are not logged in ✋🚫", 401));
 
   const decoded = await promisify(jwt.verify(token, process.env.SECRET));
 
-  const currUser = await db
+  const [currUser] = await db
     .select()
     .from(usersTable)
     .where(eq(usersTable.id, decoded.id));
   if (!currUser) return next(new AppError("No user found😔😔", 401));
+
+  if (currUser.passwordChangedAt) {
+    const changedTime = new Date(currUser.passwordChangedAt).getTime();
+    const tokenTime = decoded.iat * 1000;
+
+    if (changedTime > tokenTime) {
+      return next(
+        new AppError("Password recently changed. Please log in again.", 401),
+      );
+    }
+  }
+
   req.user = currUser;
 
   next();
@@ -131,16 +143,21 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   //1) get the user based on POSTed email
   const { email } = await forgetPasswordUserSchema.parseAsync(req.body);
   // gives returns an array with 1st el ebven if there are 5 el
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email));
-  console.log(email)
-  // const user = await db.query.usersTable.findFirst({
-  //   where: eq(usersTable.email, email),
-  // });
-console.log(user)
-  if (!user) return next(new AppError("User not found", 404));
+  // const [user] = await db
+  //   .select()
+  //   .from(usersTable)
+  //   .where(eq(usersTable.email, email));
+  // console.log(email)
+  const user = await db.query.usersTable.findFirst({
+    where: eq(usersTable.email, email),
+  });
+  // console.log(user)
+  if (!user) {
+    return res.status(200).json({
+      status: "success",
+      message: "If that email exists, a reset link has been sent.",
+    });
+  }
 
   //2) Generate the reset token
   const token = genRandToken();
@@ -154,7 +171,10 @@ console.log(user)
         usedAt: new Date(),
       })
       .where(
-        and(eq(resetPasswordTable.userId, user.id), isNull(resetPasswordTable.usedAt)),
+        and(
+          eq(resetPasswordTable.userId, user.id),
+          isNull(resetPasswordTable.usedAt),
+        ),
       );
 
     //4) insert token in the db
@@ -215,6 +235,8 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   const user = await db.query.usersTable.findFirst({
     where: eq(usersTable.id, tokenRow.userId),
   });
+  if (!user) return next(new AppError("User not found", 404));
+
   //3. change password
   const { password } = await resetPasswordSchema.parseAsync(req.body);
   const hashedPassword = await hashPassword(password);
@@ -235,10 +257,10 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
       userAgent: req.headers["user-agent"],
     });
 
-    await tx.update(resetPasswordTable)
-          .set({usedAt: new Date()})
-          .where(eq(resetPasswordTable.id, tokenRow.id))
-
+    await tx
+      .update(resetPasswordTable)
+      .set({ usedAt: new Date() })
+      .where(eq(resetPasswordTable.id, tokenRow.id));
   });
 
   //4. Log user and send jwt
