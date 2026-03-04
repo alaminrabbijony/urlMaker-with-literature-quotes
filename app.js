@@ -60,9 +60,11 @@ app.use("/api", [
    5. Routers
 ======================================================= */
 const usersRouter = require("./routes/userRoutes") 
+const urlRouter = require("./routes/urlRoutes")
+
 
 app.use("/api/v1/users", usersRouter)
-
+app.use("/api/v1/url", urlRouter)
 
 /* =======================================================
    6. 404 unhandle routes
@@ -75,6 +77,7 @@ app.use((req, res, next) => {
    7. GLOBAL ERROR HANDLER
 ======================================================= */
 const globalErrorHandler = require('./util/globalErrorHandlers')
+const { url } = require('inspector')
 app.use(globalErrorHandler)
 
 module.exports = app

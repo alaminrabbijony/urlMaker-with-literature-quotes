@@ -72,4 +72,19 @@ const resetPasswordSchema = z
   })
   .strict();
 
-module.exports = { userSchema,resetPasswordSchema, loginUserSchema, forgetPasswordUserSchema };
+const cusUrlSchema = z.object({
+  code: z
+    .string()
+    .min(3, { message: "Password must be at least 3 characters long" })
+    .optional(),
+  targetUrl: z.string(),
+  activeTime: z.number().int().positive().max(365).default(7)
+});
+
+module.exports = {
+  userSchema,
+  resetPasswordSchema,
+  loginUserSchema,
+  forgetPasswordUserSchema,
+  cusUrlSchema
+};

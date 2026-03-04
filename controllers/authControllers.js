@@ -101,10 +101,12 @@ exports.protect = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
-
-  if (!token) return next(new AppError("U are not logged in ✋🚫", 401));
-
-  const decoded = await promisify(jwt.verify(token, process.env.SECRET));
+console.log(req.headers.authorization);
+console.log(token);
+  if (!token || token === "null" || token === "undefined") {
+  return next(new AppError("You are not logged in", 401));
+}
+  const decoded = await promisify(jwt.verify)(token, process.env.SECRET);
 
   const [currUser] = await db
     .select()
@@ -113,10 +115,11 @@ exports.protect = catchAsync(async (req, res, next) => {
   if (!currUser) return next(new AppError("No user found😔😔", 401));
 
   if (currUser.passwordChangedAt) {
-    const changedTime = new Date(currUser.passwordChangedAt).getTime();
-    const tokenTime = decoded.iat * 1000;
+    const changeTime = Math.floor(
+      new Date(currUser.passwordChangedAt).getTime() / 1000,
+    );
 
-    if (changedTime > tokenTime) {
+    if (changedTime > decoded.iat) {
       return next(
         new AppError("Password recently changed. Please log in again.", 401),
       );

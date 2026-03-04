@@ -1,0 +1,212 @@
+[
+  {
+    "id": 1,
+    "quote": "Speak less than you know; have more than you show.",
+    "author": "William Shakespeare",
+    "slug": "speak-less-than-you-know-have-more-than-you-show"
+  },
+  {
+    "id": 2,
+    "quote": "The secret to getting ahead is getting started.",
+    "author": "Mark Twain",
+    "slug": "the-secret-to-getting-ahead-is-getting-started"
+  },
+  {
+    "id": 3,
+    "quote": "The glow of one warm thought is to me worth more than money.",
+    "author": "Thomas Jefferson",
+    "slug": "the-glow-of-one-warm-thought-is-to-me-worth-more-than-money"
+  },
+  {
+    "id": 4,
+    "quote": "Each day provides its own gifts.",
+    "author": "Marcus Aurelius",
+    "slug": "each-day-provides-its-own-gifts"
+  },
+  {
+    "id": 5,
+    "quote": "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+    "author": "Ralph Waldo Emerson",
+    "slug": "what-lies-behind-us-and-what-lies-before-us-are-tiny-matters-compared-to-what-lies-within-us"
+  },
+  {
+    "id": 6,
+    "quote": "Work spares us from three evils: boredom, vice, and need.",
+    "author": "Voltaire",
+    "slug": "work-spares-us-from-three-evils-boredom-vice-and-need"
+  },
+  {
+    "id": 7,
+    "quote": "Either write something worth reading or do something worth writing.",
+    "author": "Benjamin Franklin",
+    "slug": "either-write-something-worth-reading-or-do-something-worth-writing"
+  },
+  {
+    "id": 8,
+    "quote": "I have been impressed with the urgency of doing. Knowing is not enough; we must apply. Being willing is not enough; we must do.",
+    "author": "Leonardo da Vinci",
+    "slug": "i-have-been-impressed-with-the-urgency-of-doing-knowing-is-not-enough-we-must-apply-being-willing-is-not-enough-we-must-do"
+  },
+  {
+    "id": 9,
+    "quote": "We are what we repeatedly do. Excellence, therefore, is not an act but a habit.",
+    "author": "Aristotle",
+    "slug": "we-are-what-we-repeatedly-do-excellence-therefore-is-not-an-act-but-a-habit"
+  },
+  {
+    "id": 10,
+    "quote": "Quality is not an act, it is a habit.",
+    "author": "Aristotle",
+    "slug": "quality-is-not-an-act-it-is-a-habit"
+  },
+  {
+    "id": 11,
+    "quote": "By failing to prepare, you are preparing to fail.",
+    "author": "Benjamin Franklin",
+    "slug": "by-failing-to-prepare-you-are-preparing-to-fail"
+  },
+  {
+    "id": 12,
+    "quote": "Whenever you find yourself on the side of the majority, it is time to pause and reflect.",
+    "author": "Mark Twain",
+    "slug": "whenever-you-find-yourself-on-the-side-of-the-majority-it-is-time-to-pause-and-reflect"
+  },
+  {
+    "id": 13,
+    "quote": "Twenty years from now you will be more disappointed by the things that you didn't do than by the ones you did do. So throw off the bowlines. Sail away from the safe harbor...Explore. Dream. Discover.",
+    "author": "Mark Twain",
+    "slug": "twenty-years-from-now-you-will-be-more-disappointed-by-the-things-that-you-didnt-do-than-by-the-ones-you-did-do-so-throw-off-the-bowlines-sail-away-from-the-safe-harbor-explore-dream-discover"
+  },
+  {
+    "id": 14,
+    "quote": "Nothing great was ever achieved without enthusiasm.",
+    "author": "Ralph Waldo Emerson",
+    "slug": "nothing-great-was-ever-achieved-without-enthusiasm"
+  },
+  {
+    "id": 15,
+    "quote": "Fortune sides with him who dares.",
+    "author": "Virgil",
+    "slug": "fortune-sides-with-him-who-dares"
+  },
+  {
+    "id": 16,
+    "quote": "Make the most of yourself, for that is all there is of you",
+    "author": "Ralph Waldo Emerson",
+    "slug": "make-the-most-of-yourself-for-that-is-all-there-is-of-you"
+  },
+  {
+    "id": 17,
+    "quote": "Determine never to be idle. No person will have occasion to complain of the want of time who never loses any. It is wonderful how much may be done if we are always doing.",
+    "author": "Thomas Jefferson",
+    "slug": "determine-never-to-be-idle-no-person-will-have-occasion-to-complain-of-the-want-of-time-who-never-loses-any-it-is-wonderful-how-much-may-be-done-if-we-are-always-doing"
+  },
+  {
+    "id": 18,
+    "quote": "The two most important days in your life are the day you are born and the day you find out why.",
+    "author": "Mark Twain",
+    "slug": "the-two-most-important-days-in-your-life-are-the-day-you-are-born-and-the-day-you-find-out-why"
+  },
+  {
+    "id": 19,
+    "quote": "I find that the harder I work, the more luck I seem to have.",
+    "author": "Thomas Jefferson",
+    "slug": "i-find-that-the-harder-i-work-the-more-luck-i-seem-to-have"
+  },
+  {
+    "id": 20,
+    "quote": "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+    "author": "Ralph Waldo Emerson",
+    "slug": "do-not-go-where-the-path-may-lead-go-instead-where-there-is-no-path-and-leave-a-trail"
+  },
+  {
+    "id": 1,
+    "quote": "Know thyself.",
+    "author": "Socrates",
+    "slug": "know-thyself"
+  },
+  {
+    "id": 2,
+    "quote": "The unexamined life is not worth living.",
+    "author": "Socrates",
+    "slug": "unexamined-life-not-worth"
+  },
+  {
+    "id": 3,
+    "quote": "I think, therefore I am.",
+    "author": "René Descartes",
+    "slug": "i-think-therefore-i-am"
+  },
+  {
+    "id": 4,
+    "quote": "Time is money.",
+    "author": "Benjamin Franklin",
+    "slug": "time-is-money"
+  },
+  {
+    "id": 5,
+    "quote": "Well done is better than well said.",
+    "author": "Benjamin Franklin",
+    "slug": "well-done-better-than-said"
+  },
+  {
+    "id": 6,
+    "quote": "Fortune favors the bold.",
+    "author": "Virgil",
+    "slug": "fortune-favors-bold"
+  },
+  {
+    "id": 7,
+    "quote": "To be is to do.",
+    "author": "Socrates",
+    "slug": "to-be-is-to-do"
+  },
+  {
+    "id": 8,
+    "quote": "To do is to be.",
+    "author": "Aristotle",
+    "slug": "to-do-is-to-be"
+  },
+  {
+    "id": 9,
+    "quote": "Happiness depends upon ourselves.",
+    "author": "Aristotle",
+    "slug": "happiness-depends-ourselves"
+  },
+  {
+    "id": 10,
+    "quote": "Quality is not an act, it is a habit.",
+    "author": "Aristotle",
+    "slug": "quality-is-habit"
+  },
+  {
+    "id": 11,
+    "quote": "He who dares wins.",
+    "author": "Virgil",
+    "slug": "he-who-dares-wins"
+  },
+  {
+    "id": 12,
+    "quote": "Act without expectation.",
+    "author": "Lao Tzu",
+    "slug": "act-without-expectation"
+  },
+  {
+    "id": 13,
+    "quote": "The journey begins with one step.",
+    "author": "Lao Tzu",
+    "slug": "journey-begins-one-step"
+  },
+  {
+    "id": 14,
+    "quote": "Silence is golden.",
+    "author": "Proverb",
+    "slug": "silence-is-golden"
+  },
+  {
+    "id": 15,
+    "quote": "Knowledge is power.",
+    "author": "Francis Bacon",
+    "slug": "knowledge-is-power"
+  }
+]

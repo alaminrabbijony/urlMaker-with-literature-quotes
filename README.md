@@ -1,6 +1,8 @@
 # urlMaker-with-literature-quotes
 A read-heavy distributed URL redirection system with rate limiting, async analytics, indexed lookups, and scalability considerations
 
+
+
 ## Server Entry Point (`server.js`)
 
 `server.js` is the application bootstrap layer responsible for startup validation, database verification, and graceful shutdown handling.
