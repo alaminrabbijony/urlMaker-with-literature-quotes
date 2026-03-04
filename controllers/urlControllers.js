@@ -77,7 +77,7 @@ exports.getUrl = catchAsync(async (req, res, next) => {
   if (expiryDate && expiryDate < new Date()) {
     return next(new AppError("Url expired😪😪😪", 410));
   }
-
+  // if redirect successful then increment the click count
   await db
     .update(urlTable)
     .set({
@@ -86,6 +86,4 @@ exports.getUrl = catchAsync(async (req, res, next) => {
     .where(eq(urlTable.id, url.id));
 
   res.redirect(url.targetUrl);
-
-  // if redirect successful then increment the click count
 });

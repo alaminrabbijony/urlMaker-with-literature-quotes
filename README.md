@@ -201,3 +201,306 @@ The authentication system is:
 - Designed for production deployment
 
 It separates active authentication state, historical logs, and user identity data to maintain clean architecture boundaries.
+
+## Database Modeling & Validation
+
+The system separates persistence and validation to maintain clear architecture boundaries.  
+Database schemas are defined with **Drizzle ORM**, while incoming requests are validated using **Zod** before reaching business logic.
+
+---
+
+### 🗄 Database Tables
+
+Core tables:
+
+```
+users
+password_change_history
+reset_passwords
+```
+
+---
+
+### 👤 Users
+
+Stores identity and authentication data.
+
+```
+{
+  id,
+  name,
+  email (unique),
+  password,
+  role,
+  passwordChangedAt,
+  createdAt,
+  updatedAt
+}
+```
+
+Roles are implemented using a PostgreSQL enum:
+
+```
+["super_admin", "admin", "user"]
+```
+
+`passwordChangedAt` is used to invalidate JWTs issued before a password update.
+
+---
+
+### 📜 Password Change History
+
+Tracks password updates for auditing.
+
+```
+{
+  id,
+  userId,
+  changedAt,
+  ipAddress,
+  userAgent
+}
+```
+
+Foreign key:
+
+```
+userId -> users.id
+```
+
+---
+
+### 🔁 Reset Password Tokens
+
+Manages password reset workflow.
+
+```
+{
+  id,
+  userId,
+  tokenHash,
+  expiresAt,
+  usedAt,
+  createdAt
+}
+```
+
+Tokens expire and are single-use.
+
+Foreign key:
+
+```
+userId -> users.id
+```
+
+---
+
+### 🧪 Request Validation (Zod)
+
+Incoming requests are validated before controller logic executes.
+
+Schemas:
+
+```
+userSchema
+loginUserSchema
+forgetPasswordUserSchema
+resetPasswordSchema
+cusUrlSchema
+```
+
+---
+
+### 🔗 URL Creation Validation
+
+```
+{
+  code (optional),
+  targetUrl,
+  activeTime
+}
+```
+
+Constraints:
+
+- `code` minimum length
+- `activeTime` positive integer
+- max lifetime: **365 days**
+- default lifetime: **7 days**
+
+---
+
+## Summary
+
+The persistence layer enforces structural integrity while Zod validation ensures only well-formed data reaches the application logic.
+
+## URL Shortening & Expiring Link Architecture
+
+The URL shortening system allows authenticated users to generate short links that redirect to a target URL.  
+Each short URL has a unique code, an optional expiration window, and tracks usage metrics.
+
+The system ensures:
+
+- Collision-safe short code generation
+- Automatic expiration handling
+- Redirect tracking
+- Safe database updates
+
+---
+
+### 🔗 Short URL Creation
+
+Users create short URLs through the `postUrl` endpoint.
+
+Flow:
+
+1. Request payload is validated using **Zod**.
+2. A short code is determined:
+   - If the user provides `code`, it is used.
+   - Otherwise a **6 character NanoID** is generated.
+3. The database checks whether the short code already exists.
+4. If the code already exists:
+   - The request is rejected
+   - A suggested alternative code is returned.
+5. An expiration timestamp is calculated using the provided `activeTime`.
+6. The short URL is stored in the database.
+
+Example stored record:
+
+```
+{
+  id,
+  userId,
+  code,
+  targetUrl,
+  expiresAt,
+  clickCount
+}
+```
+
+Each entry represents a unique redirect resource.
+
+---
+
+### ⏳ Expiration Mechanism
+
+Each short URL includes an expiration timestamp calculated from the requested active time window.
+
+```
+expiresAt = Date.now() + activeTime(days)
+```
+
+When a redirect request occurs:
+
+- If the current time exceeds `expiresAt`
+- The system rejects the request.
+
+Response:
+
+```
+410 Gone
+```
+
+This prevents expired links from continuing to redirect.
+
+---
+
+### 🚦 Redirect Flow
+
+Redirect requests follow the `getUrl` endpoint.
+
+```
+GET /:shortCode
+```
+
+Flow:
+
+1. System retrieves the URL record using the provided short code.
+2. If the code does not exist → `404 Not Found`.
+3. If the URL is expired → `410 Gone`.
+4. If valid → redirect to the stored `targetUrl`.
+
+Redirect is handled using:
+
+```
+res.redirect(targetUrl)
+```
+
+---
+
+### 📊 Click Tracking
+
+Every successful redirect increments the link's usage counter.
+
+Database update:
+
+```
+clickCount = clickCount + 1
+```
+
+This is executed atomically using a SQL expression:
+
+```
+sql`${urlTable.clickCount} + 1`
+```
+
+This prevents race conditions when multiple users access the same link simultaneously.
+
+---
+
+### 🔒 Ownership Model
+
+Each short URL is associated with the authenticated user who created it.
+
+```
+userId -> usersTable.id
+```
+
+This allows:
+
+- Per-user link management
+- Future analytics per user
+- Role-based URL management if needed
+
+---
+
+### ⚙️ Collision Prevention
+
+Short codes must be globally unique.
+
+When a requested or generated code already exists:
+
+- The system rejects the request
+- Suggests a modified code using an additional NanoID suffix
+
+Example suggestion:
+
+```
+customCodeAB12
+```
+
+This prevents silent overwrites of existing links.
+
+---
+
+### 🛡 Security Considerations Implemented
+
+- Input validation using Zod
+- Collision detection for short codes
+- Expiration enforcement
+- Atomic click count updates
+- Authentication required for link creation
+
+---
+
+## Summary
+
+The URL shortening system is designed to be:
+
+- Collision-safe
+- Expiration-aware
+- Redirect-efficient
+- Analytics-ready
+- Scalable for high traffic usage
+
+Each short link acts as an independent redirect resource with built-in expiration and usage tracking.
